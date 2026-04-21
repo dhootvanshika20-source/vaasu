@@ -3,15 +3,21 @@ const https = require('https');
  
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 const PORT = parseInt(process.env.PORT, 10) || 3000;
-const HOST = '0.0.0.0'; // Must bind to 0.0.0.0 for Railway
+const HOST = '0.0.0.0';
+ 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Accept',
+  'Access-Control-Max-Age': '86400',
+};
  
 const server = http.createServer((req, res) => {
  
-  // CORS — allow all origins so your website can call this
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Set CORS on every response
+  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
  
+  // Handle preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
@@ -30,7 +36,7 @@ const server = http.createServer((req, res) => {
  
     if (!API_KEY) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'ANTHROPIC_API_KEY not set on server' }));
+      res.end(JSON.stringify({ error: { message: 'ANTHROPIC_API_KEY not set on server' } }));
       return;
     }
  
@@ -43,7 +49,7 @@ const server = http.createServer((req, res) => {
         parsed = JSON.parse(body);
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        res.end(JSON.stringify({ error: { message: 'Invalid JSON' } }));
         return;
       }
  
@@ -77,7 +83,7 @@ const server = http.createServer((req, res) => {
  
       apiReq.on('error', err => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+        res.end(JSON.stringify({ error: { message: err.message } }));
       });
  
       apiReq.write(payload);
@@ -90,7 +96,6 @@ const server = http.createServer((req, res) => {
   res.end('Not found');
 });
  
-// Bind to 0.0.0.0 — critical for Railway
 server.listen(PORT, HOST, () => {
   console.log(`Vaasu server running on ${HOST}:${PORT}`);
 });
